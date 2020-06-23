@@ -28,11 +28,11 @@ checked_in_ts_project(
     checked_in_js = "install_package.js",
     visibility = ["//internal/npm_install:__subpackages__"],
     deps = [
+        "@npm//@types/async",
         "@npm//@types/node",
+        "@npm//@types/request-promise",
         "@npm//@types/ssri",
         "@npm//@types/tar",
-        "@npm//@types/async",
-        "@npm//@types/request-promise",
     ],
 )
 

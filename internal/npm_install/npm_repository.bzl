@@ -41,13 +41,16 @@ npm_repositories = repository_rule(
     attrs = NPM_REPOSITORY_ATTRS,
     doc = "Repository rule to set up bazel repositories given a package.json and package-lock.json",
     implementation = _npm_repositories_impl,
-    configure = True
+    configure = True,
 )
 
 INSTALL_PCKAGE_ATTRS = {
     "timeout": attr.int(
         default = 600,
         doc = "number of seconds before timing out when installing an npm package",
+    ),
+    "cert": attr.string(
+        doc = "path to CA certificate",
     ),
     "integrity": attr.string(
         mandatory = True,
@@ -69,15 +72,11 @@ INSTALL_PCKAGE_ATTRS = {
         mandatory = True,
         doc = "npm package version",
     ),
-    "cert": attr.string(
-        doc = "path to CA certificate",
-    ),
     "_script": attr.label(
         default = Label("@build_bazel_rules_nodejs//internal/npm_install:install_package.js"),
         doc = "Script to install an npm package as a bazel repository",
     ),
 }
-
 
 def _install_package_impl(repository_ctx):
     """Implementation of npm_repositories"""
@@ -92,7 +91,7 @@ def _install_package_impl(repository_ctx):
 
     result = repository_ctx.execute(
         [node, script, name, pkg, version, url, integrity, ",".join(required_targets)],
-        environment = {'NODE_EXTRA_CA_CERTS': repository_ctx.attr.cert},
+        environment = {"NODE_EXTRA_CA_CERTS": repository_ctx.attr.cert},
         timeout = repository_ctx.attr.timeout,
     )
     if result.return_code:
