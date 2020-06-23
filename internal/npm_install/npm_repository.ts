@@ -1,11 +1,12 @@
-'use strict';
+"use strict";
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as process from 'process';
+import * as fs from "fs";
+import * as path from "path";
+import * as process from "process";
 
 function log_verbose(...m: any[]) {
-  if (!!process.env['VERBOSE_LOGS']) console.error('[generate_build_file.ts]', ...m);
+  if (!!process.env["VERBOSE_LOGS"])
+    console.error("[generate_build_file.ts]", ...m);
 }
 
 const args = process.argv.slice(2);
@@ -13,19 +14,18 @@ const WORKSPACE = args[0];
 const LOCK_FILE_PATH = args[1];
 
 type Dep = {
-  _name: string,
-  _repoName: string,
-  _version: string,
-  _resolved: string,
-  _integrity: string,
-  _requires: Map<string, string>,
-  _dependencies: Dep[],
-  [k: string]: any
-}
+  _name: string;
+  _repoName: string;
+  _version: string;
+  _resolved: string;
+  _integrity: string;
+  _requires: Map<string, string>;
+  _dependencies: Dep[];
+  [k: string]: any;
+};
 
 if (require.main === module) {
-  main()
-  process.exit(1)
+  main();
 }
 
 /**
@@ -49,129 +49,153 @@ function writeFileSync(p: string, content: string) {
 }
 
 export function main() {
-  // find all packages 
-  const pkgs = findPackages(LOCK_FILE_PATH)
+  // find all packages
+  const pkgs = findPackages(LOCK_FILE_PATH);
 
   // flatten dependencies
-  let flattenPkgs: Map<string, Dep> = new Map()
-  flattenDependencies(flattenPkgs, pkgs)
-  
+  let flattenPkgs: Map<string, Dep> = new Map();
+  flattenDependencies(flattenPkgs, pkgs);
+  log_verbose(`${WORKSPACE} has ${flattenPkgs.size} dependencies in total`);
+
   // create packages.bzl file
-  const packagesBzl = generatePackagesBzl(Array.from(flattenPkgs.values()))
+  const packagesBzl = generatePackagesBzl(
+    Array.from(flattenPkgs.values()),
+    pkgs
+  );
 
   // write to packages.bzl
-  writeFileSync('packages.bzl', packagesBzl)
+  writeFileSync("packages.bzl", packagesBzl);
 
   // write a .bazelignore file
-  writeFileSync('.bazelignore', 'node_modules')
+  writeFileSync(".bazelignore", "node_modules");
 
   // write a BUILD file
-  writeFileSync('BUILD', '')
-
-  // write a WORKSPACE file
-  writeFileSync('WORKSPACE',
-` # DO NOT EDIT: automatically generated WORKSPACE file for npm_repositories rule
-workspace(name = "${WORKSPACE}")
-`)
+  writeFileSync("BUILD", "");
 }
 
+/**
+ * Find all packages from package_lock.json
+ */
 function findPackages(packageLock: string): Dep[] {
-  /**
-   * Find all packages from package_lock.json
-   */
-  const stripBom = (s: string) => s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
-  let lockData = JSON.parse(stripBom(fs.readFileSync(packageLock, {encoding: 'utf8'})))
-  
-  return extractPackages(lockData.dependencies)
+  const stripBom = (s: string) => (s.charCodeAt(0) === 0xfeff ? s.slice(1) : s);
+  let lockData = JSON.parse(
+    stripBom(fs.readFileSync(packageLock, { encoding: "utf8" }))
+  );
+
+  return extractPackages(lockData.dependencies);
 }
 
+/**
+ * Extract packages from lock file data
+ */
 function extractPackages(dependencies: any): Dep[] {
-  /**
-   * Extract packages from lock file data
-   */
   const pkgs: Dep[] = [];
-  const deps = dependencies || []
+  const deps = dependencies || [];
   Object.keys(deps).forEach((name: string) => {
-    let pkg= <any>{}
+    let pkg = <any>{};
+    log_verbose(`extract information for ${name}`);
 
-    pkg._name = name
-    pkg._repoName = repoName(name, deps[name])
-    pkg._version = deps[name].version
-    pkg._resolved = deps[name].resolved
-    pkg._integrity = deps[name].integrity
-    pkg._requires = deps[name].requires
-    pkg._dependencies = extractPackages(deps[name].dependencies)
+    pkg._name = name;
+    pkg._repoName = repoName(name, deps[name]);
+    pkg._version = deps[name].version;
+    pkg._resolved = deps[name].resolved;
+    pkg._integrity = deps[name].integrity;
+    pkg._requires = deps[name].requires;
+    pkg._dependencies = extractPackages(deps[name].dependencies);
 
-    pkgs.push(pkg)
+    log_verbose(
+      `repo ${pkg._repoName} depends on ${
+        pkg._dependencies.length
+      } packages : ${JSON.stringify(pkg._dependencies)}`
+    );
+    pkgs.push(pkg);
   });
-  
-  return pkgs
+
+  return pkgs;
 }
 
+/**
+ * Flatten the package list by extracting _dependencies field from packages
+ */
 function flattenDependencies(flattenPkgs: Map<string, Dep>, pkgs: Dep[]) {
-  /**
-   * Flatten the package list by extracting _dependencies field from packages
-   */
   pkgs.forEach((pkg: Dep) => {
     if (!flattenPkgs.has(pkg._repoName)) {
-      flattenPkgs.set(pkg._repoName, pkg)
-      flattenDependencies(flattenPkgs, pkg._dependencies)
+      flattenPkgs.set(pkg._repoName, pkg);
+      flattenDependencies(flattenPkgs, pkg._dependencies);
     }
-  })
+  });
 }
 
-function repoName(name:string, dep: any): string {
-  /**
-   * Given a package, return a legal Bazel workspace name ^\\p{Alpha}\\w*$
-   */
-  const version = dep.version || dep._version
-  return `npm__${name.replace(/\@/g, '_').replace(/\'/g,'_').replace(/\-/g,'_').replace(/\//g, '_').replace(/\./g, '_')}__${version.replace(/\./g, '_')}`
+/**
+ * Given a package, return a legal Bazel workspace name ^\\p{Alpha}\\w*$
+ */
+function repoName(name: string, dep: any): string {
+  const version = dep.version || dep._version;
+  return `npm__${name
+    .replace(/\@/g, "at_")
+    .replace(/\'/g, "_")
+    .replace(/\//g, "_")}__${version.replace(/\./g, "_")}`;
 }
 
-
+/**
+ * Given a package, return a string used for installing it as a repository in bazel
+ */
 function npm_package(pkg: Dep): string {
- /**
-  * Given a package, return a string used for installing it as a repository in bazel
-  */
- const deps = ('_dependencies' in pkg) ? pkg._dependencies : []
- const required_repos: string[] = deps.map((dep) => `"${repoName(dep._name, dep)}"`)
- return `
+  const deps = "_dependencies" in pkg ? pkg._dependencies : [];
+  const required_targets: string[] = deps.map(
+    (dep) => `"@${repoName(dep._name, dep)}//:pkg"`
+  );
+  return `
   if "${pkg._repoName}" not in native.existing_rules():
     install_package(
       name = "${pkg._repoName}",
       pkg = "${pkg._name}",
       version = "${pkg._version}",
       integrity = "${pkg._integrity}",
-      required_repos = [${required_repos.join(',')}],
-      npm_args = npm_args,
+      url = "${pkg._resolved}",
+      required_targets = [${required_targets.join(",")}],
+      **kwargs
     )
- `
+ `;
 }
 
-function generatePackagesBzl(pkgs: Dep[]): string {
-  const packages = pkgs.map(pkg => npm_package(pkg))
-  const mappings = pkgs.map(pkg => `"${pkg._name}": "@${pkg._repoName}//:pkg"`)
+/**
+ * Generate packages.bzl where we declare all repositories but only expose
+ * explicitly required packages (first level in packages.json) via `require`
+ */
+function generatePackagesBzl(flattenPksg: Dep[], pkgs: Dep[]): string {
+  const packages = flattenPksg.map((pkg) => npm_package(pkg));
+  const mappings = pkgs.map(
+    (pkg) => `"${pkg._name}": "@${pkg._repoName}//:pkg"`
+  );
   return ` # Generated by npm_repositories rule
-load("@build_bazel_rules_nodejs//internal/npm_install:npm_install.bzl", "install_package")
+load("@build_bazel_rules_nodejs//internal/npm_install:npm_repository.bzl", "install_package")
 
-def install_packages(npm_args=[]):
-  ${packages.join('\n')}
+def install_packages(**kwargs):
+  ${packages.join("\n")}
 
 _packages = {
-  ${mappings.join(',')}
+  ${mappings.join(",")}
 }
 
 all_packages = _packages.values()
 
-def require(name, target=None):
+def _require(name, target=None):
   name_key = name.lower()
   if name_key not in _packages:
     fail("Could not find npm-provided dependency: '%s'" % name)
   req = _packages[name_key]
+  pkg, _, _ = req.partition("//")
   if target != None:
-    pkg, _, _ = req.partition("//")
     req = pkg + target
+  return req, pkg
+
+def require(name, target=None):
+  req, _ = _require(name, target)
   return req
+
+def repo(name):
+  _, pkg = _require(name)
+  return pkg
 `;
-  
 }
