@@ -191,8 +191,8 @@ def _nodejs_binary_impl(ctx):
     for d in ctx.attr.data:
         if NpmPackageInfo in d:
             for source in d[NpmPackageInfo].sources.to_list():
-                if source.dirname.startswith('external'):
-                    module = source.dirname.split('/')[1]
+                if source.dirname.startswith("external"):
+                    module = source.dirname.split("/")[1]
                     if module not in _external_repos:
                         _external_repos[module] = module
     external_repos = _external_repos.keys()
@@ -280,6 +280,7 @@ fi
         "TEMPLATED_runfiles_helper_script": _to_manifest_path(ctx, ctx.file._runfiles_helper_script),
         "TEMPLATED_vendored_node": "" if is_builtin else strip_external(ctx.file._node.path),
     }
+
     # TODO when we have "link_all_bins" we will only need to look in one place for the entry point
     #if ctx.file.entry_point.is_source:
     #    substitutions["TEMPLATED_script_path"] = "\"%s\"" % _to_execroot_path(ctx, ctx.file.entry_point)
@@ -625,7 +626,7 @@ _NODEJS_EXECUTABLE_OUTPUTS = {
     "launcher_sh": "%{name}.sh",
     "loader_script": "%{name}_loader.js",
     "require_patch_script": "%{name}_require_patch.js",
-    "node_patches_script": "%{name}_node_patch.js"
+    "node_patches_script": "%{name}_node_patch.js",
 }
 
 # The name of the declared rule appears in

@@ -81,12 +81,12 @@ def run_node(ctx, inputs, arguments, executable, **kwargs):
 
     # If there are additional repos needed in runtime
     _external_repos = {}
-    if 'data' in kwargs:
-        for d in kwargs.pop('data'):
+    if "data" in kwargs:
+        for d in kwargs.pop("data"):
             if NpmPackageInfo in d:
                 for source in d[NpmPackageInfo].sources.to_list():
-                    if source.dirname.startswith('external'):
-                        module = source.dirname.split('/')[1]
+                    if source.dirname.startswith("external"):
+                        module = source.dirname.split("/")[1]
                         if module not in _external_repos:
                             _external_repos[module] = module
     external_repos = _external_repos.keys()
