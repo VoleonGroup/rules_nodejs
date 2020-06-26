@@ -4,6 +4,7 @@ load("@build_bazel_rules_nodejs//:index.bzl", "nodejs_binary")
 # BEGIN-INTERNAL
 # avoid leaking a ts dependency
 load("@npm_bazel_typescript//:checked_in_ts_project.bzl", "checked_in_ts_project")
+load("@npm_bazel_typescript//:webpack_bundle.bzl", "webpack_bundle")
 
 # using checked in ts library like the linker
 checked_in_ts_project(
@@ -14,28 +15,26 @@ checked_in_ts_project(
     deps = ["@npm//@types/node"],
 )
 
-checked_in_ts_project(
-    name = "compile_npm_repository",
+webpack_bundle(
+    name = "npm_repository",
     src = "npm_repository.ts",
-    checked_in_js = "npm_repository.js",
-    visibility = ["//internal/npm_install:__subpackages__"],
-    deps = [
-        "@npm//@types/node",
-        "@npm//@types/semver",
-    ],
+    tsconfig = ":tsconfig.json",
+    webpack_config = ":webpack.config.js",
+    data = [
+        "@npm//semver",
+    ]
 )
 
-checked_in_ts_project(
-    name = "compile_install_package",
+webpack_bundle(
+    name = "install_package",
     src = "install_package.ts",
-    checked_in_js = "install_package.js",
-    visibility = ["//internal/npm_install:__subpackages__"],
-    deps = [
-        "@npm//@types/node",
-        "@npm//@types/request-promise",
-        "@npm//@types/ssri",
-        "@npm//@types/tar",
-    ],
+    tsconfig = ":tsconfig.json",
+    webpack_config = ":webpack.config.js",
+    data = [
+        "@npm//request-promise",
+        "@npm//ssri",
+        "@npm//tar",
+    ]
 )
 
 # END-INTERNAL
