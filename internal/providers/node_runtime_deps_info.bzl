@@ -93,10 +93,6 @@ def run_node(ctx, inputs, arguments, executable, **kwargs):
 
     env["ADDITIONAL_EXTERNAL_REPOS"] = ",".join(external_repos)
 
-    print('arguments %s' % arguments)
-    print('exec_exec %s' % exec_exec)
-    print('kwargs %s' % kwargs)
-
     ctx.actions.run(
         inputs = inputs + extra_inputs,
         arguments = arguments,

@@ -692,7 +692,6 @@ function decodePackageName(name) {
 function linkRepo(repoName, p) {
     let repoDir = path.join(process.cwd(), 'external', repoName)
     let linkPath = path.join(process.cwd(), 'node_modules', p)
-    console.log(`Linking ${linkPath} to ${repoDir}`)
     if (!fs$1.existsSync(path.dirname(linkPath))) {
         fs$1.mkdirSync(path.dirname(linkPath), { recursive: true });
     }
