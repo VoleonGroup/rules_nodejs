@@ -59,6 +59,7 @@ def _impl(ctx):
         outputs = outputs,
         arguments = [args],
         configuration_env_vars = ctx.attr.configuration_env_vars,
+        data = ctx.attr.data,
     )
     return [DefaultInfo(files = depset(outputs), runfiles = ctx.runfiles(files = outputs))]
 

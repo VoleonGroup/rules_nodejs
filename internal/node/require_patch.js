@@ -24,6 +24,7 @@
 'use strict';
 var path = require('path');
 var fs = require('fs');
+const { exception } = require('console');
 
 // Ensure that node is added to the path for any subprocess calls
 const isWindows = /^win/i.test(process.platform);
@@ -54,6 +55,7 @@ const BIN_DIR = 'TEMPLATED_bin_dir';
 const GEN_DIR = 'TEMPLATED_gen_dir';
 const INSTALL_SOURCE_MAP_SUPPORT = TEMPLATED_install_source_map_support;
 const TARGET = 'TEMPLATED_target';
+const EXTERNAL_NODE_MODULES_REPO = 'TEMPLATED_external_node_modules_repo';
 
 log_verbose(`patching require for ${TARGET}
   cwd: ${process.cwd()}
@@ -65,6 +67,7 @@ log_verbose(`patching require for ${TARGET}
   MODULE_ROOTS: ${JSON.stringify(MODULE_ROOTS, undefined, 2)}
   NODE_MODULES_ROOT: ${NODE_MODULES_ROOT}
   USER_WORKSPACE_NAME: ${USER_WORKSPACE_NAME}
+  EXTERNAL_NODE_MODULES_REPO: ${EXTERNAL_NODE_MODULES_REPO}
 `);
 
 function resolveToModuleRoot(path) {
@@ -499,5 +502,39 @@ if (INSTALL_SOURCE_MAP_SUPPORT) {
     log_verbose(`WARNING: source-map-support module not installed.
       Stack traces from languages like TypeScript will point to generated .js files.
       Set install_source_map_support = False in ${TARGET} to turn off this warning.`);
+  }
+}
+
+function decodePackageName(name) {
+  return name.replace(/_slash_/g, '/').replace(/_quote_/g, "'").replace(/_at_/g, '@')
+}
+
+function linkRepo(repoName, p) {
+  let repoDir = path.join(process.env.RUNFILES, repoName)
+  let linkPath = path.join(process.env.RUNFILES, NODE_MODULES_ROOT, p)
+  if (!fs.existsSync(path.dirname(linkPath))){
+    fs.mkdirSync(path.dirname(linkPath), { recursive: true });
+  }
+  try {
+    fs.unlinkSync(linkPath);
+  } catch(_) {}
+  fs.symlinkSync(repoDir, linkPath);
+}
+
+// Before running the actual js file, create symlinks for external repo if needed
+if (EXTERNAL_NODE_MODULES_REPO.length) {
+  try {
+    const repos = EXTERNAL_NODE_MODULES_REPO.split(',');
+    repos.forEach((repo) => {
+      let segments = repo.split('__');
+      let packages = [];
+      for (let i = 1; i < segments.length; i += 2) {
+        packages.push(decodePackageName(segments[i]))
+      }
+      linkRepo(repo, packages.join('/node_modules/'))
+    })
+  } catch (e) {
+    log_verbose(`ERROR: node modules from external repositories are not symlinked 
+      to ${NODE_MODULES_ROOT}: ${e}`);
   }
 }

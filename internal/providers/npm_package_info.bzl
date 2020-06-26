@@ -24,6 +24,7 @@ NpmPackageInfo = provider(
         "direct_sources": "Depset of direct source files in this npm package",
         "sources": "Depset of direct & transitive source files in this npm package and in its dependencies",
         "workspace": "The workspace name that this npm package is provided from",
+        "name": "The package name",
     },
 )
 

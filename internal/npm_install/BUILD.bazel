@@ -19,7 +19,10 @@ checked_in_ts_project(
     src = "npm_repository.ts",
     checked_in_js = "npm_repository.js",
     visibility = ["//internal/npm_install:__subpackages__"],
-    deps = ["@npm//@types/node"],
+    deps = [
+        "@npm//@types/node",
+        "@npm//@types/semver",
+    ],
 )
 
 checked_in_ts_project(

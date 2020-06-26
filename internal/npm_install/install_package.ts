@@ -14,7 +14,7 @@ function log_verbose(...m: any[]) {
 
 const args = process.argv.slice(2);
 const WORKSPACE = args[0];
-const PACKAGE = args[1];
+const PACKAGE = args[1].replace(/\./g, '_dot_');
 const VERSION = args[2];
 const URL = args[3];
 const INTEGRITY = args[4];

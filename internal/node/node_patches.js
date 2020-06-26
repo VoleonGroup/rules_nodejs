@@ -7,6 +7,9 @@ var path = _interopDefault(require('path'));
 var util = _interopDefault(require('util'));
 var fs$1 = _interopDefault(require('fs'));
 
+const NODE_MODULES_ROOT = 'TEMPLATED_node_modules_root';
+const EXTERNAL_NODE_MODULES_REPO = 'TEMPLATED_external_node_modules_repo';
+
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 function unwrapExports (x) {
@@ -676,5 +679,59 @@ src.subprocess(__filename, NP_SUBPROCESS_BIN_DIR);
 var register = {
 
 };
+
+function log_verbose(...m) {
+    // This is a template file so we use __filename to output the actual filename
+    if (VERBOSE_LOGS) console.error(`[${path.basename(__filename)}]`, ...m);
+}
+
+function decodePackageName(name) {
+    return name.replace(/_slash_/g, '/').replace(/_quote_/g, "'").replace(/_at_/g, '@')
+}
+
+function linkRepo(repoName, p) {
+    log_verbose(`MAIN_SCRIPT is ${process.env.MAIN_SCRIPT}`)
+    let repoDir = path.join(process.cwd(), 'external', repoName)
+    // let linkPath = path.join(process.cwd(), path.dirname(process.env.MAIN_SCRIPT), 'node_modules', p)
+    let linkPath = path.join(process.cwd(), 'node_modules', p)
+    log_verbose(`linking ${repoDir} to ${linkPath}`)
+    if (!fs$1.existsSync(path.dirname(linkPath))) {
+        fs$1.mkdirSync(path.dirname(linkPath), { recursive: true });
+    }
+    try {
+        fs$1.unlinkSync(linkPath);
+    } catch (_) { }
+    fs$1.symlinkSync(repoDir, linkPath);
+}
+
+// Before running the actual js file, create symlinks for external repo if needed
+var repos = [];
+if (process.env.ADDITIONAL_EXTERNAL_REPOS) {
+    repos = process.env.ADDITIONAL_EXTERNAL_REPOS.split(',');
+}
+if (EXTERNAL_NODE_MODULES_REPO.length) {
+    repos = repos.concat(EXTERNAL_NODE_MODULES_REPO.split(','));
+}
+if (repos.length) {
+    try {
+        const mainRepo = decodePackageName(NODE_MODULES_ROOT.split('/')[0])
+        repos.forEach((repo) => {
+            log_verbose(`repo is ${repo}`)
+            let segments = repo.split('__');
+            let packages = [];
+            for (let i = 1; i < segments.length; i += 2) {
+                let repoName = decodePackageName(segments[i]);
+                if (repoName != mainRepo) {
+                    packages.push(repoName);
+                }
+            }
+            linkRepo(repo, packages.join('/node_modules/'))
+        })
+    } catch (e) {
+        log_verbose(`ERROR: node modules from external repositories are not symlinked 
+        to ${NODE_MODULES_ROOT}: ${e}`);
+    }
+}
+
 
 module.exports = register;
