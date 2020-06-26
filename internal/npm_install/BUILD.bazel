@@ -18,23 +18,23 @@ checked_in_ts_project(
 webpack_bundle(
     name = "npm_repository",
     src = "npm_repository.ts",
-    tsconfig = ":tsconfig.json",
-    webpack_config = ":webpack.config.js",
     data = [
         "@npm//semver",
-    ]
+    ],
+    tsconfig = ":tsconfig.json",
+    webpack_config = ":webpack.config.js",
 )
 
 webpack_bundle(
     name = "install_package",
     src = "install_package.ts",
-    tsconfig = ":tsconfig.json",
-    webpack_config = ":webpack.config.js",
     data = [
         "@npm//request-promise",
         "@npm//ssri",
         "@npm//tar",
-    ]
+    ],
+    tsconfig = ":tsconfig.json",
+    webpack_config = ":webpack.config.js",
 )
 
 # END-INTERNAL

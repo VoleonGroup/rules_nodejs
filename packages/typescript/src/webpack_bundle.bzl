@@ -12,9 +12,9 @@ def webpack_bundle(name, src, tsconfig, webpack_config, checked_in_js = None, da
         name = name,
         outs = [checked_in_js],
         args = [
-            "$(execpath {})".format(src.split(':')[-1]),
+            "$(execpath {})".format(src.split(":")[-1]),
             "--config",
-            "$(execpath {})".format(webpack_config.split(':')[-1]),
+            "$(execpath {})".format(webpack_config.split(":")[-1]),
             "-o",
             "$@",
         ],
