@@ -31,7 +31,6 @@ def _npm_repositories_impl(repository_ctx):
     node = repository_ctx.path(get_node_label(repository_ctx))
     script = repository_ctx.path(repository_ctx.attr._script)
     lock_file = repository_ctx.path(repository_ctx.attr.package_lock_json)
-    print("%s %s %s %s" % (node, script, repository_ctx.attr.name, lock_file))
     result = repository_ctx.execute(
         [node, script, repository_ctx.attr.name, lock_file],
     )
