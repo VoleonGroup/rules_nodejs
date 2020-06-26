@@ -205,8 +205,6 @@ for ARG in "${ALL_ARGS[@]:-}"; do
   esac
 done
 
-echo "MODULES_MANIFEST is $MODULES_MANIFEST"
-
 # Link the first-party modules into node_modules directory before running the actual program
 if [[ -n "${MODULES_MANIFEST:-}" ]]; then
   "${node}" "${link_modules_script}" "${MODULES_MANIFEST:-}"
@@ -263,13 +261,6 @@ if [ "${EXPECTED_EXIT_CODE}" -eq "0" ]; then
   # handled by the node process.
   # If we had merely forked a child process here, we'd be responsible
   # for forwarding those OS interactions.
-  pwd
-  echo "node: ${node}"
-  echo "launcer_node_options: ${LAUNCHER_NODE_OPTIONS[@]:-}"
-  echo "user_node_option: ${USER_NODE_OPTIONS[@]:-}"
-  echo "main: ${MAIN}"
-  echo ${ARGS[@]+"${ARGS[@]}"}
-  # exec "${node}" "${LAUNCHER_NODE_OPTIONS[@]:-}" "${USER_NODE_OPTIONS[@]:-}"
   exec "${node}" "${LAUNCHER_NODE_OPTIONS[@]:-}" "${USER_NODE_OPTIONS[@]:-}" "${MAIN}" ${ARGS[@]+"${ARGS[@]}"}
   # exec terminates execution of this shell script, nothing later will run.
 fi

@@ -28,7 +28,6 @@
         "@commitlint/cli": "^8.0.0",
         "@commitlint/config-conventional": "^8.0.0",
         "@gregmagolan/test-a": "0.0.5",
-        "@types/async": "^3.2.3",
         "@types/hammerjs": "2.0.35",
         "@types/jasmine": "~3.3.13",
         "@types/jest": "24.9.0",

@@ -280,7 +280,6 @@ fi
         "TEMPLATED_runfiles_helper_script": _to_manifest_path(ctx, ctx.file._runfiles_helper_script),
         "TEMPLATED_vendored_node": "" if is_builtin else strip_external(ctx.file._node.path),
     }
-    print("manifest %s" % (_to_manifest_path(ctx, node_modules_manifest)))
     # TODO when we have "link_all_bins" we will only need to look in one place for the entry point
     #if ctx.file.entry_point.is_source:
     #    substitutions["TEMPLATED_script_path"] = "\"%s\"" % _to_execroot_path(ctx, ctx.file.entry_point)
