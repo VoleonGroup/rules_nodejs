@@ -122,6 +122,7 @@ function log_verbose(...m: any[]) {
   }
 }
 
+console.log("Here!!!")
 const args = process.argv.slice(2);
 const WORKSPACE = args[0];
 const LOCK_FILE_PATH = args[1];
