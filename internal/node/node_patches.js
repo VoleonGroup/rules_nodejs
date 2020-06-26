@@ -690,11 +690,9 @@ function decodePackageName(name) {
 }
 
 function linkRepo(repoName, p) {
-    log_verbose(`MAIN_SCRIPT is ${process.env.MAIN_SCRIPT}`)
     let repoDir = path.join(process.cwd(), 'external', repoName)
-    // let linkPath = path.join(process.cwd(), path.dirname(process.env.MAIN_SCRIPT), 'node_modules', p)
     let linkPath = path.join(process.cwd(), 'node_modules', p)
-    log_verbose(`linking ${repoDir} to ${linkPath}`)
+    console.log(`Linking ${linkPath} to ${repoDir}`)
     if (!fs$1.existsSync(path.dirname(linkPath))) {
         fs$1.mkdirSync(path.dirname(linkPath), { recursive: true });
     }
@@ -705,16 +703,19 @@ function linkRepo(repoName, p) {
 }
 
 // Before running the actual js file, create symlinks for external repo if needed
-var repos = [];
+let repos = [];
 if (process.env.ADDITIONAL_EXTERNAL_REPOS) {
     repos = process.env.ADDITIONAL_EXTERNAL_REPOS.split(',');
 }
 if (EXTERNAL_NODE_MODULES_REPO.length) {
     repos = repos.concat(EXTERNAL_NODE_MODULES_REPO.split(','));
 }
+// dedup
+repos = [...new Set(repos)]
 if (repos.length) {
     try {
         const mainRepo = decodePackageName(NODE_MODULES_ROOT.split('/')[0])
+        console.log(`mainRepo is ${mainRepo}`)
         repos.forEach((repo) => {
             log_verbose(`repo is ${repo}`)
             let segments = repo.split('__');
@@ -725,7 +726,9 @@ if (repos.length) {
                     packages.push(repoName);
                 }
             }
-            linkRepo(repo, packages.join('/node_modules/'))
+            if (packages.length) {
+                linkRepo(repo, packages.join('/node_modules/'))
+            }
         })
     } catch (e) {
         log_verbose(`ERROR: node modules from external repositories are not symlinked 

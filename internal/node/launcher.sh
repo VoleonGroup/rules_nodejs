@@ -261,6 +261,9 @@ if [ "${EXPECTED_EXIT_CODE}" -eq "0" ]; then
   # handled by the node process.
   # If we had merely forked a child process here, we'd be responsible
   # for forwarding those OS interactions.
+  pwd
+  echo "${node}" "${LAUNCHER_NODE_OPTIONS[@]:-}" "${USER_NODE_OPTIONS[@]:-}" "${MAIN}" ${ARGS[@]+"${ARGS[@]}"}
+  ls -al
   exec "${node}" "${LAUNCHER_NODE_OPTIONS[@]:-}" "${USER_NODE_OPTIONS[@]:-}" "${MAIN}" ${ARGS[@]+"${ARGS[@]}"}
   # exec terminates execution of this shell script, nothing later will run.
 fi
