@@ -39,23 +39,6 @@ do the same.
     },
 )
 
-def _compute_node_modules_root(ctx):
-    """Computes the node_modules root (if any) from data & deps targets."""
-    node_modules_root = ""
-    deps = []
-    if hasattr(ctx.attr, "data"):
-        deps += ctx.attr.data
-    if hasattr(ctx.attr, "deps"):
-        deps += ctx.attr.deps
-    for d in deps:
-        if NpmPackageInfo in d:
-            possible_root = "/".join([d[NpmPackageInfo].workspace, "node_modules"])
-            if not node_modules_root:
-                node_modules_root = possible_root
-            elif node_modules_root != possible_root:
-                fail("All npm dependencies need to come from a single workspace. Found '%s' and '%s'." % (node_modules_root, possible_root))
-    return node_modules_root
-
 def run_node(ctx, inputs, arguments, executable, **kwargs):
     """Helper to replace ctx.actions.run
     This calls node programs with a node_modules directory in place"""
@@ -95,7 +78,20 @@ def run_node(ctx, inputs, arguments, executable, **kwargs):
                 env[var] = ctx.var[var]
             elif var in ctx.configuration.default_shell_env.keys():
                 env[var] = ctx.configuration.default_shell_env[var]
-    env["BAZEL_NODE_MODULES_ROOT"] = _compute_node_modules_root(ctx)
+
+    # If there are additional repos needed in runtime
+    _external_repos = {}
+    if "data" in kwargs:
+        for d in kwargs.pop("data"):
+            if NpmPackageInfo in d:
+                for source in d[NpmPackageInfo].sources.to_list():
+                    if source.dirname.startswith("external"):
+                        module = source.dirname.split("/")[1]
+                        if module not in _external_repos:
+                            _external_repos[module] = module
+    external_repos = _external_repos.keys()
+
+    env["ADDITIONAL_EXTERNAL_REPOS"] = ",".join(external_repos)
 
     ctx.actions.run(
         inputs = inputs + extra_inputs,

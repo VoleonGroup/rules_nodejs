@@ -59,8 +59,9 @@ def _impl(ctx):
         outputs = outputs,
         arguments = [args],
         configuration_env_vars = ctx.attr.configuration_env_vars,
+        data = ctx.attr.data,
     )
-    return [DefaultInfo(files = depset(outputs))]
+    return [DefaultInfo(files = depset(outputs), runfiles = ctx.runfiles(files = outputs))]
 
 _npm_package_bin = rule(
     _impl,

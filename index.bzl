@@ -30,6 +30,7 @@ load(
 load("//internal/node:node_repositories.bzl", _node_repositories = "node_repositories")
 load("//internal/node:npm_package_bin.bzl", _npm_bin = "npm_package_bin")
 load("//internal/npm_install:npm_install.bzl", _npm_install = "npm_install", _yarn_install = "yarn_install")
+load("//internal/npm_install:npm_repository.bzl", _npm_repositories = "npm_repositories")
 load("//internal/pkg_npm:pkg_npm.bzl", _pkg_npm = "pkg_npm")
 load("//internal/pkg_web:pkg_web.bzl", _pkg_web = "pkg_web")
 
@@ -42,6 +43,7 @@ npm_package_bin = _npm_bin
 pkg_web = _pkg_web
 copy_to_bin = _copy_to_bin
 params_file = _params_file
+npm_repositories = _npm_repositories
 # ANY RULES ADDED HERE SHOULD BE DOCUMENTED, see index.for_docs.bzl
 
 # Allows us to avoid a transitive dependency on bazel_skylib from leaking to users

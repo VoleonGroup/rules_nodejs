@@ -79,7 +79,7 @@ def _compute_node_modules_root(ctx):
         ] if f])
     return node_modules_root
 
-def _write_require_patch_script(ctx, node_modules_root):
+def _write_require_patch_script(ctx, node_modules_root, external_repos):
     # Generates the JavaScript snippet of module roots mappings, with each entry
     # in the form:
     #   {module_name: /^mod_name\b/, module_root: 'path/to/mod_name'}
@@ -96,12 +96,24 @@ def _write_require_patch_script(ctx, node_modules_root):
         output = ctx.outputs.require_patch_script,
         substitutions = {
             "TEMPLATED_bin_dir": ctx.bin_dir.path,
+            "TEMPLATED_external_node_modules_repo": ",".join(external_repos),
             "TEMPLATED_gen_dir": ctx.genfiles_dir.path,
             "TEMPLATED_install_source_map_support": str(ctx.attr.install_source_map_support).lower(),
             "TEMPLATED_module_roots": "\n  " + ",\n  ".join(module_mappings),
             "TEMPLATED_node_modules_root": node_modules_root,
             "TEMPLATED_target": str(ctx.label),
             "TEMPLATED_user_workspace_name": ctx.workspace_name,
+        },
+        is_executable = True,
+    )
+
+def _write_node_patch_script(ctx, node_modules_root, external_repos):
+    ctx.actions.expand_template(
+        template = ctx.file._node_patches_template,
+        output = ctx.outputs.node_patches_script,
+        substitutions = {
+            "TEMPLATED_external_node_modules_repo": ",".join(external_repos),
+            "TEMPLATED_node_modules_root": node_modules_root,
         },
         is_executable = True,
     )
@@ -175,8 +187,19 @@ def _nodejs_binary_impl(ctx):
 
     node_modules_root = _compute_node_modules_root(ctx)
 
-    _write_require_patch_script(ctx, node_modules_root)
+    _external_repos = {}
+    for d in ctx.attr.data:
+        if NpmPackageInfo in d:
+            for source in d[NpmPackageInfo].sources.to_list():
+                if source.dirname.startswith("external"):
+                    module = source.dirname.split("/")[1]
+                    if module not in _external_repos:
+                        _external_repos[module] = module
+    external_repos = _external_repos.keys()
+
+    _write_require_patch_script(ctx, node_modules_root, external_repos)
     _write_loader_script(ctx)
+    _write_node_patch_script(ctx, node_modules_root, external_repos)
 
     # Provide the target name as an environment variable avaiable to all actions for the
     # runfiles helpers to use.
@@ -224,7 +247,7 @@ fi
 
     node_tool_files.append(ctx.file._link_modules_script)
     node_tool_files.append(ctx.file._runfiles_helper_script)
-    node_tool_files.append(ctx.file._node_patches_script)
+    node_tool_files.append(ctx.outputs.node_patches_script)
     node_tool_files.append(node_modules_manifest)
 
     is_builtin = ctx.attr._node.label.workspace_name in ["nodejs_%s" % p for p in BUILT_IN_NODE_PLATFORMS]
@@ -251,7 +274,7 @@ fi
         "TEMPLATED_link_modules_script": _to_manifest_path(ctx, ctx.file._link_modules_script),
         "TEMPLATED_loader_script": _to_manifest_path(ctx, ctx.outputs.loader_script),
         "TEMPLATED_modules_manifest": _to_manifest_path(ctx, node_modules_manifest),
-        "TEMPLATED_node_patches_script": _to_manifest_path(ctx, ctx.file._node_patches_script),
+        "TEMPLATED_node_patches_script": _to_manifest_path(ctx, ctx.outputs.node_patches_script),
         "TEMPLATED_repository_args": _to_manifest_path(ctx, ctx.file._repository_args),
         "TEMPLATED_require_patch_script": _to_manifest_path(ctx, ctx.outputs.require_patch_script),
         "TEMPLATED_runfiles_helper_script": _to_manifest_path(ctx, ctx.file._runfiles_helper_script),
@@ -573,7 +596,7 @@ Predefined genrule variables are not supported in this context.
         default = Label("@nodejs//:node_bin"),
         allow_single_file = True,
     ),
-    "_node_patches_script": attr.label(
+    "_node_patches_template": attr.label(
         default = Label("//internal/node:node_patches.js"),
         allow_single_file = True,
     ),
@@ -602,6 +625,7 @@ Predefined genrule variables are not supported in this context.
 _NODEJS_EXECUTABLE_OUTPUTS = {
     "launcher_sh": "%{name}.sh",
     "loader_script": "%{name}_loader.js",
+    "node_patches_script": "%{name}_node_patch.js",
     "require_patch_script": "%{name}_require_patch.js",
 }
 

@@ -14,6 +14,30 @@ checked_in_ts_project(
     deps = ["@npm//@types/node"],
 )
 
+checked_in_ts_project(
+    name = "compile_npm_repository",
+    src = "npm_repository.ts",
+    checked_in_js = "npm_repository.js",
+    visibility = ["//internal/npm_install:__subpackages__"],
+    deps = [
+        "@npm//@types/node",
+        "@npm//@types/semver",
+    ],
+)
+
+checked_in_ts_project(
+    name = "compile_install_package",
+    src = "install_package.ts",
+    checked_in_js = "install_package.js",
+    visibility = ["//internal/npm_install:__subpackages__"],
+    deps = [
+        "@npm//@types/node",
+        "@npm//@types/request-promise",
+        "@npm//@types/ssri",
+        "@npm//@types/tar",
+    ],
+)
+
 # END-INTERNAL
 
 bzl_library(

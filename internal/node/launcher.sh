@@ -254,6 +254,7 @@ fi
 # a binary fails to run. Otherwise any failure would make such a test
 # fail before we could assert that we expected that failure.
 readonly EXPECTED_EXIT_CODE="TEMPLATED_expected_exit_code"
+export MAIN_SCRIPT="${MAIN}"
 if [ "${EXPECTED_EXIT_CODE}" -eq "0" ]; then
   # Replace the current process (bash) with a node process.
   # This means that stdin, stdout, signals, etc will be transparently
