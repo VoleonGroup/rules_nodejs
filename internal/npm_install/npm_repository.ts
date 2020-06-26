@@ -117,8 +117,9 @@ import * as semver from "semver";
 import { assert } from "console";
 
 function log_verbose(...m: any[]) {
-  if (!!process.env["VERBOSE_LOGS"])
+  if (!!process.env["VERBOSE_LOGS"]) {
     console.error("[generate_build_file.ts]", ...m);
+  }
 }
 
 const args = process.argv.slice(2);
@@ -390,7 +391,6 @@ function breakCycles(prefix: Dep[], pkg: Dep) {
         let depset: DepSet = new DepSet(dep, new Set(prefix));
         dep._required_deps = [];
         dep._dependencies = depset.depArray();
-        
         break;
       }
     }

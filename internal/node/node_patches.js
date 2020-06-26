@@ -690,8 +690,8 @@ function decodePackageName(name) {
 }
 
 function linkRepo(repoName, p) {
-    let repoDir = path.join(process.cwd(), 'external', repoName)
-    let linkPath = path.join(process.cwd(), 'node_modules', p)
+    const repoDir = path.join(process.cwd(), 'external', repoName)
+    const linkPath = path.join(process.cwd(), 'node_modules', p)
     if (!fs$1.existsSync(path.dirname(linkPath))) {
         fs$1.mkdirSync(path.dirname(linkPath), { recursive: true });
     }
@@ -731,7 +731,7 @@ if (repos.length) {
         })
     } catch (e) {
         log_verbose(`ERROR: node modules from external repositories are not symlinked 
-        to ${NODE_MODULES_ROOT}: ${e}`);
+                     to ${NODE_MODULES_ROOT}: ${e}`);
     }
 }
 
