@@ -1,3 +1,5 @@
+startup --host_jvm_args=-Djavax.net.ssl.trustStore='/etc/pki/ca-trust/extracted/java/cacerts'
+
 # Import shared settings first so we can override below
 import %workspace%/common.bazelrc
 
