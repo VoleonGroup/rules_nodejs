@@ -28,14 +28,6 @@ package(default_visibility = ["//visibility:public"])
 
 `;
 
-if (require.main == module) {
-  log_verbose(PACKAGE);
-  log_verbose(URL);
-  log_verbose(INTEGRITY);
-  log_verbose(REQUIRED_TARGETS);
-  main();
-}
-
 type Dep = {
   _name: string;
   _files: string[];
@@ -716,3 +708,10 @@ function findEntryFile(pkg: Dep, path: string) {
   }
   return entryFile;
 }
+
+
+log_verbose(PACKAGE);
+log_verbose(URL);
+log_verbose(INTEGRITY);
+log_verbose(REQUIRED_TARGETS);
+main();

@@ -122,6 +122,10 @@ function log_verbose(...m: any[]) {
   }
 }
 
+console.log("Here!!!")
+console.log(`require.main is ${require.main}`)
+console.log(`module is ${module}`)
+console.log(`require.main === module is ${require.main === module}`)
 const args = process.argv.slice(2);
 const WORKSPACE = args[0];
 const LOCK_FILE_PATH = args[1];
@@ -229,12 +233,6 @@ class DepSet {
   }
 }
 
-
-
-if (require.main === module) {
-  main();
-}
-
 /**
  * Create a new directory and any necessary subdirectories
  * if they do not exist.
@@ -251,8 +249,10 @@ function mkdirp(p: string) {
  * write to exists.
  */
 function writeFileSync(p: string, content: string) {
+  console.log(`writing to ${p}`);
   mkdirp(path.dirname(p));
   fs.writeFileSync(p, content);
+  console.log(`write to ${p} finished`);
 }
 
 export function main() {
@@ -500,3 +500,5 @@ def repo(name):
   return pkg
 `;
 }
+
+main();
