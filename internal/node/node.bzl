@@ -96,13 +96,13 @@ def _write_require_patch_script(ctx, node_modules_root, external_repos):
         output = ctx.outputs.require_patch_script,
         substitutions = {
             "TEMPLATED_bin_dir": ctx.bin_dir.path,
+            "TEMPLATED_external_node_modules_repo": ",".join(external_repos),
             "TEMPLATED_gen_dir": ctx.genfiles_dir.path,
             "TEMPLATED_install_source_map_support": str(ctx.attr.install_source_map_support).lower(),
             "TEMPLATED_module_roots": "\n  " + ",\n  ".join(module_mappings),
             "TEMPLATED_node_modules_root": node_modules_root,
             "TEMPLATED_target": str(ctx.label),
             "TEMPLATED_user_workspace_name": ctx.workspace_name,
-            "TEMPLATED_external_node_modules_repo": ",".join(external_repos),
         },
         is_executable = True,
     )
@@ -112,8 +112,8 @@ def _write_node_patch_script(ctx, node_modules_root, external_repos):
         template = ctx.file._node_patches_template,
         output = ctx.outputs.node_patches_script,
         substitutions = {
-            "TEMPLATED_node_modules_root": node_modules_root,
             "TEMPLATED_external_node_modules_repo": ",".join(external_repos),
+            "TEMPLATED_node_modules_root": node_modules_root,
         },
         is_executable = True,
     )
@@ -625,8 +625,8 @@ Predefined genrule variables are not supported in this context.
 _NODEJS_EXECUTABLE_OUTPUTS = {
     "launcher_sh": "%{name}.sh",
     "loader_script": "%{name}_loader.js",
-    "require_patch_script": "%{name}_require_patch.js",
     "node_patches_script": "%{name}_node_patch.js",
+    "require_patch_script": "%{name}_require_patch.js",
 }
 
 # The name of the declared rule appears in
