@@ -9,7 +9,7 @@ import * as r from "request-promise";
 
 function log_verbose(...m: any[]) {
   if (!!process.env["VERBOSE_LOGS"])
-    console.error("[generate_build_file.ts]", ...m);
+    console.error("[install_packages.ts]", ...m);
 }
 
 const args = process.argv.slice(2);
@@ -69,6 +69,9 @@ async function downloadAndVerifyPackage(url: string, integrity: string) {
     })
     .then((_) => {
       fs.unlinkSync(filename);
+    }).catch((error) => {
+      log_verbose(error);
+      process.exit(1);
     });
 }
 
