@@ -1,13 +1,13 @@
 /**
  * Script to set up bazel repositories from a package-lock.json file.
- * 
+ *
  * The high level idea is to convert the dependency tree encoded in package-lock.json
  * to a flat list of Deps (see below for type definition), while preserving the difference
  * between `requires` (globally dependable) vs `dependencies` (locally dependable) by
  * encoding such information in the name of the repository. (see https://stackoverflow.com/questions/52926922/package-lock-json-requires-vs-dependencies)
- * 
+ *
  * For example, if a package-lock.json looks like
- * 
+ *
  * {
  * ...
  *   "dependencies": {
@@ -43,26 +43,26 @@
  *     }
  *   }
  * }
- * 
+ *
  * The following repositories will be created (assuming WORKSPACE name is "npm")
- * 
+ *
  * @npm__A__1_0_1, @npm__A__1_0_1__C__2_1_0, @npm__A__1_0_1__C__2_1_0__E__3_2_3, @npm__B__1_5_0, @npm__C__3_0_0, @npm__D__4_2_0,
- * 
+ *
  * where
- * 1. @npm__A__1_0_1//:pkg depends on 
+ * 1. @npm__A__1_0_1//:pkg depends on
  *      @npm__B__1_5_0//:pkg,
  *      @npm__A__1_0_1__C__2_1_0//:pkg
  * 2. @npm__A__1_0_1__C__2_1_0//:pkg depends on
  *      @npm__D__4_2_0//:pkg,
  *      @npm__A__1_0_1__C__2_1_0__E__3_2_3//pkg
- * 
- * 
+ *
+ *
  * Also, given that node.js' `require()` supports circular dependency (I know, I know) whereas bazel
  * doesn't, circular dependencies are resolved by removing the second edge.
- * 
- * 
+ *
+ *
  * For example, if package-lock.json looks like
- * 
+ *
  * {
  * ...
  *   "dependencies": {
@@ -89,23 +89,23 @@
  *     }
  *   }
  * }
- * 
+ *
  * The following repositories will be created (assuming WORKSPACE name is "npm")
- * 
+ *
  * @npm__A__1_0_1, @npm__A__1_0_1__C__2_1_0, @npm__A__1_0_1__C__2_1_0__E__3_2_3,
- * 
+ *
  * where
- * 1. @npm__A__1_0_1//:pkg depends on 
+ * 1. @npm__A__1_0_1//:pkg depends on
  *      @npm__B__1_5_0//:pkg,
  *      @npm__A__1_0_1__C__2_1_0//:pkg
  * 2. @npm__A__1_0_1__C__2_1_0//:pkg only depends on
  *      @npm__A__1_0_1__C__2_1_0__E__3_2_3//pkg
- * 
- * Note that the edge from C->A is omitted, this is safe because 
+ *
+ * Note that the edge from C->A is omitted, this is safe because
  * "@npm__A__1_0_1__C__2_1_0" is never directly used and thus when "require(A)"
  * is invoked inside of "C", A will always be present in "../../node_modules"
- * 
- * 
+ *
+ *
  */
 
 "use strict";
@@ -114,11 +114,11 @@ import * as fs from "fs";
 import * as path from "path";
 import * as process from "process";
 import * as semver from "semver";
-import { assert } from "console";
+import { strict as assert } from 'assert';
 
 function log_verbose(...m: any[]) {
   if (!!process.env["VERBOSE_LOGS"]) {
-    console.error("[generate_build_file.ts]", ...m);
+    console.error("[npm_repository.ts]", ...m);
   }
 }
 
@@ -243,10 +243,10 @@ function mkdirp(p: string) {
  * write to exists.
  */
 function writeFileSync(p: string, content: string) {
-  console.log(`writing to ${p}`);
+  log_verbose(`writing to ${p}`);
   mkdirp(path.dirname(p));
   fs.writeFileSync(p, content);
-  console.log(`write to ${p} finished`);
+  log_verbose(`write to ${p} finished`);
 }
 
 export function main() {
@@ -267,8 +267,11 @@ export function main() {
     breakCycles([], pkg);
   })
 
-  // write to packages.bzl
-  writeFileSync("packages.bzl", generatePackagesBzl(pkgs));
+  // flatten the list
+  const allPkgs = flattenDependencies(pkgs);
+
+  // topologically sort the packages and write to packages.bzl
+  writeFileSync("packages.bzl", generatePackagesBzl(pkgs, topoSort(allPkgs)));
 
   // write a .bazelignore file
   writeFileSync(".bazelignore", "node_modules");
@@ -276,6 +279,7 @@ export function main() {
   // write a BUILD file
   writeFileSync("BUILD", "");
 }
+
 
 /**
  * Find all packages from package_lock.json
@@ -308,7 +312,6 @@ function extractPackages(parent: Dep | null, dependencies: any): Dep[] {
     pkg._dependencies = extractPackages(pkg, dep.dependencies);
     pkg._repoName = repoName(pkg);
     pkg.dependencies = dep.dependencies;
-    pkg.requires = dep.requires;
 
     pkgs.push(pkg);
   });
@@ -320,9 +323,9 @@ function extractPackages(parent: Dep | null, dependencies: any): Dep[] {
 /**
  * Resolve package requirements in packages to Deps in the following way:
  * 1. For every package P in the given list, go through its _requires field
- * 2. For every required package Q, if there's a top-level dependency that satisfy the 
+ * 2. For every required package Q, if there's a top-level dependency that satisfy the
  *    version requirement, and if it's not a parent Dep, add it to its _required_deps.
- * 3. Otherwise, check if _dependencies contains a Dep that meets Q's requirement, assert if 
+ * 3. Otherwise, check if _dependencies contains a Dep that meets Q's requirement, assert if
  *    otherwise
  * 4. Do the same for all of P's _dependencies
  */
@@ -332,7 +335,7 @@ function resolveRequires(depsMap: Map<string, [Dep]>, pkgs: Dep[]) {
       return new Set([pkg._parent, ...getParents(pkg._parent)]);
     }
     return new Set();
-  } 
+  }
   pkgs.forEach((pkg: Dep) => {
     const parents = getParents(pkg);
     pkg._required_deps = [];
@@ -346,10 +349,11 @@ function resolveRequires(depsMap: Map<string, [Dep]>, pkgs: Dep[]) {
           pkg._required_deps.push(satisfies[0]);
           return;
         }
+      } else {
+        const _dependencies = pkg._dependencies.filter((dep: Dep) => {
+          return dep._name === pkgName && semver.satisfies(dep._version, constraint)});
+        assert(_dependencies.length > 0, `Can't resolve ${pkgName}@${constraint}, required by ${depID(pkg)}\n_dependencies:${pkg._dependencies}\nrequires:${pkg._requires}\ndependencies:${pkg.dependencies}`)
       }
-      const _dependencies = pkg._dependencies.filter((dep: Dep) => {
-        return dep._name === pkgName && semver.satisfies(dep._version, constraint)});
-      assert(_dependencies.length > 0, `Can't resolve ${pkgName}@${constraint}, required by ${depID(pkg)}`)
     })
     // Add dependencies to available Deps
     pkg._dependencies.forEach(dep => {
@@ -420,12 +424,84 @@ function repoName(pkg: Dep): string {
   }
 }
 
+
+/**
+ * Given a list of packages, create a flattened list of packages where nested dependencies
+ * are included as well.
+ */
+function flattenDependencies(pkgs: Dep[]): Dep[] {
+  const flattenList: Dep[] = [];
+
+  pkgs.forEach((pkg: Dep) => {
+    flattenList.push(pkg);
+    flattenList.push(...flattenDependencies(pkg._dependencies));
+  })
+
+  return flattenList;
+}
+
+
+/**
+ * Run topological sort on the packages
+ */
+function topoSort(pkgs: Dep[]): Dep[] {
+  const sortedPkgs: Dep[] = [];
+  const pkgsWithNoEdges: Dep[] = [];
+  const graph: Map<Dep, Set<Dep>> = new Map();
+
+  // construct the graph
+  pkgs.forEach((pkg: Dep) => {
+    pkg._dependencies.forEach((dep: Dep) => {
+      if (graph.has(pkg)) {
+        graph.get(pkg).add(dep);
+      } else {
+        graph.set(pkg, new Set([dep]));
+      }
+    })
+    pkg._required_deps.forEach((dep: Dep) => {
+      if (graph.has(pkg)) {
+        graph.get(pkg).add(dep);
+      } else {
+        graph.set(pkg, new Set([dep]));
+      }
+    })
+  })
+
+  // find packages with no deps
+  pkgs.forEach((pkg: Dep) => {
+    if (pkg._dependencies.length == 0 && pkg._required_deps.length == 0) {
+      pkgsWithNoEdges.push(pkg);
+    }
+  })
+
+  // Kahn's algorithm for topological sort
+  while (pkgsWithNoEdges.length > 0) {
+    let node = pkgsWithNoEdges.pop();
+    sortedPkgs.push(node);
+    for (let [p, dependencies] of graph) {
+      if (dependencies.has(node)) {
+        dependencies.delete(node);
+        if (dependencies.size == 0) {
+          pkgsWithNoEdges.push(p);
+        }
+      }
+    }
+  }
+
+  // sanity checks
+  for (let [p, dependencies] of graph) {
+    assert(dependencies.size == 0, `There're still edges left after topological sort, there must be an cycle.
+Edges:
+${p._repoName}->${[...dependencies].map(dep => dep._name).join(",")}
+`)
+  }
+
+  return sortedPkgs;
+}
+
+
 /**
  * Given a package, return a string used for installing it as a repository in bazel.
- * Specifically,
- * 1. Since all Deps in _required_deps are top level dependencies, we only list them
- *    as required_targets.
- * 2. For every dependency in _dependencies, we need to print them here as well.
  */
 function print_npm_package(pkg: Dep): string {
   log_verbose(`printing ${depID(pkg)}`)
@@ -447,15 +523,16 @@ function print_npm_package(pkg: Dep): string {
       required_targets = [${required_targets.map(target => `"@${target}"`).join(",")}],
       **kwargs
     )
-` + pkg._dependencies.map((dep: Dep) => print_npm_package(dep)).join("");
+`
 }
+
 
 /**
  * Generate packages.bzl where we declare all repositories but only expose
  * explicitly required packages (first level in packages.json) via `require`
  */
-function generatePackagesBzl(pkgs: Dep[]): string {
-  const packages = pkgs.map((pkg) => print_npm_package(pkg));
+function generatePackagesBzl(pkgs: Dep[], allPkgs: Dep[]): string {
+  const packages = allPkgs.map((pkg) => print_npm_package(pkg));
   const mappings = pkgs.map(
     (pkg) => `"${pkg._name}": "${pkg._repoName}//:pkg"`
   );
