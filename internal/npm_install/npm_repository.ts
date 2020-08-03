@@ -430,7 +430,7 @@ function repoName(pkg: Dep): string {
  * are included as well.
  */
 function flattenDependencies(pkgs: Dep[]): Dep[] {
-  const flattenList: Dep[] =[];
+  const flattenList: Dep[] = [];
 
   pkgs.forEach((pkg: Dep) => {
     flattenList.push(pkg);
