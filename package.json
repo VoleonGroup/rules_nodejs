@@ -95,7 +95,7 @@
         "ts-loader": "^7.0.5",
         "tsickle": "0.38.0",
         "tsutils": "2.27.2",
-        "typeorm": "0.2.18",
+        "typeorm": "0.2.25",
         "typescript": "^3.9.5",
         "unidiff": "1.0.1",
         "v8-coverage": "1.0.9",
