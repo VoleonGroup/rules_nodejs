@@ -17,7 +17,7 @@
         "@angular/common": "^9.1.0",
         "@angular/compiler": "^9.1.0",
         "@angular/compiler-cli": "^9.1.0",
-        "@angular/core": "^9.1.0",
+        "@angular/core": "^11.0.5",
         "@babel/cli": "^7.6.2",
         "@babel/core": "^7.6.2",
         "@babel/preset-env": "^7.6.2",
